@@ -36,7 +36,7 @@ export const Volume = () => {
         )}
       </button>
       <Slider
-        className="w-[95px]"
+        className="w-[95px] cursor-pointer"
         defaultValue={[volume]}
         value={[volume * 100]}
         max={100}
