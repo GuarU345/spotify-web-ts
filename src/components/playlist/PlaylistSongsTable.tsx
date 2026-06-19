@@ -43,6 +43,7 @@ export const PlaylistSongsTable = ({ songs, playlistName }) => {
                   key={song.song.id}
                   likedSong={song}
                   index={index}
+                  playlistId={playlistId!}
                   playlistName={playlistName}
                 />
               ))}
