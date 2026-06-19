@@ -9,20 +9,25 @@ export const usePlaySong = () => {
     setCurrentMusic,
     setCurrentSong,
     playMusic,
-    setIsPlaying,
-    sound,
+    togglePlay,
     currentMusic,
   } = usePlayerStore();
 
   const playUniqueSong = async (id: string, songId: string, type: string) => {
+    if (currentMusic.songId === songId && currentMusic.type === type) {
+      togglePlay();
+      return;
+    }
+
     const data = await userReproducingSomething(userData.token!, id, type);
-    setIsPlaying(true);
+
     setCurrentMusic({
       id: data.id,
       songId: songId,
       type: data.type,
       songs: data.songs,
     });
+
     const songIndex = data.songs.findIndex((song: Song) => song.id === songId);
     setCurrentSong(songIndex);
     playMusic();
@@ -31,28 +36,21 @@ export const usePlaySong = () => {
   const playAlbumOrPlaylist = async (
     id: string,
     type: string,
-    isPlayingSomething: boolean
   ) => {
-    if (isPlayingSomething) {
-      setIsPlaying(false);
-      sound.pause();
-      return;
-    }
-
-    if (sound && currentMusic?.id === id) {
-      setIsPlaying(true);
-      sound.play();
+    if (currentMusic.id === id && currentMusic.type === type) {
+      togglePlay();
       return;
     }
 
     const data = await userReproducingSomething(userData.token!, id, type);
-    setIsPlaying(true);
+
     setCurrentMusic({
       id: data.id,
       type: data.type,
       songId: data.songId,
       songs: data.songs,
     });
+
     setCurrentSong(0);
     playMusic();
   };

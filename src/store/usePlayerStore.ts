@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Howl } from "howler";
-import { STREAMSONGS } from "../../public/songs";
+import { STREAMSONGS } from "../utils/constants";
 import { PlaylistSong } from "../types/song";
 import { Song } from "../types/playlist";
 import { isUndefined } from "../utils/functions";
@@ -29,8 +29,8 @@ interface Actions {
   setCurrentSong: (state: number | undefined) => void;
   setProgress: (state: string | null) => void;
   playMusic: () => void;
-  goNextSong: () => void;
-  goPreviousSong: () => void;
+  togglePlay: () => void;
+  changeSong: (action: "next" | "previous") => void;
   changeVolume: (state: number) => void;
 }
 
@@ -46,22 +46,21 @@ export const usePlayerStore = create<State & Actions>((set, get) => ({
   setIsPlaying: (isPlaying) => set({ isPlaying }),
   setVolume: (volume) => set({ volume }),
   setCurrentMusic: (currentMusic) => {
-    if (
-      currentMusic.id !== get().currentMusic.id ||
-      currentMusic.songId !== get().currentMusic.songId
-    ) {
-      const { sound } = get();
-      if (sound) {
-        sound.stop();
-        set({ duration: null, progress: null });
-      }
+    const { currentMusic: prevMusic, sound } = get()
+
+    const isDifferentMusic = currentMusic.id !== prevMusic.id || currentMusic.songId !== prevMusic.songId
+
+    if (isDifferentMusic && sound) {
+      sound.unload()
+      set({ duration: null, progress: null, sound: null })
     }
-    set({ currentMusic });
+
+    set({ currentMusic })
   },
   setCurrentSong: (currentSong) => set({ currentSong }),
   setProgress: (progress) => set({ progress }),
   playMusic: async () => {
-    const { currentMusic, currentSong, volume, goNextSong } = get();
+    const { currentMusic, currentSong, volume, changeSong } = get();
     const { songs } = currentMusic;
     const findSong = songs![currentSong];
     const foundSong = STREAMSONGS.find(
@@ -90,28 +89,47 @@ export const usePlayerStore = create<State & Actions>((set, get) => ({
     });
 
     newSound.on("end", () => {
-      goNextSong()
+      changeSong("next")
     })
 
     newSound.play();
-    set({ sound: newSound });
+    set({ sound: newSound, isPlaying: true });
   },
-  goNextSong: () => {
-    const { currentMusic, currentSong, playMusic, sound } = get();
-    const { songs } = currentMusic;
-    const nextSong = (currentSong + 1) % songs!.length;
-    set({ currentSong: nextSong });
-    sound.stop();
-    set({ duration: null, progress: null });
-    playMusic();
+  togglePlay: () => {
+    const { sound, isPlaying } = get();
+
+    if (!sound) return;
+
+    if (isPlaying) {
+      sound.pause();
+      set({ isPlaying: false });
+    } else {
+      sound.play();
+      set({ isPlaying: true });
+    }
   },
-  goPreviousSong: () => {
+  changeSong(action: "next" | "previous") {
     const { currentMusic, currentSong, playMusic, sound } = get();
-    const { songs } = currentMusic;
-    const previousSong = (currentSong - 1 + songs!.length) % songs!.length;
-    set({ currentSong: previousSong });
-    sound.stop();
-    set({ duration: null, progress: null });
+    const songs = currentMusic.songs;
+
+    if (!songs || songs.length === 0) return;
+
+    if (sound) sound.unload();
+
+    const newSongIndex = action === "next"
+      ? (currentSong + 1) % songs.length
+      : (currentSong - 1 + songs.length) % songs.length;
+
+    set({
+      currentSong: newSongIndex,
+      currentMusic: {
+        ...currentMusic,
+        songId: songs[newSongIndex].id
+      },
+      duration: null,
+      progress: null
+    });
+
     playMusic();
   },
   changeVolume: (volume) => {
@@ -119,5 +137,5 @@ export const usePlayerStore = create<State & Actions>((set, get) => ({
     if (sound !== null) {
       sound.volume(volume);
     }
-  },
+  }
 }));

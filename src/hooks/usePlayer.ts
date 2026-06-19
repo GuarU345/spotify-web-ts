@@ -1,27 +1,19 @@
 import { usePlayerStore } from "../store/usePlayerStore";
 
 export const usePlayer = () => {
-  const { isPlaying, setIsPlaying, goNextSong, goPreviousSong, sound } =
+  const { togglePlay, changeSong } =
     usePlayerStore();
 
   const handlePlay = () => {
-    isPlaying ? sound.pause() : sound.play();
-
-    setIsPlaying(!isPlaying);
+    togglePlay()
   };
 
   const handleNextSong = () => {
-    if (!isPlaying) {
-      setIsPlaying(true)
-    }
-    goNextSong()
+    changeSong("next")
   };
 
   const handlePreviousSong = () => {
-    if (!isPlaying) {
-      setIsPlaying(true)
-    }
-    goPreviousSong()
+    changeSong("previous")
   };
 
   return { handleNextSong, handlePreviousSong, handlePlay };
